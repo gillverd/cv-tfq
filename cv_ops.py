@@ -7,8 +7,6 @@ class BinaryOp(object):
     Our operators are mapped to qubits in big-endian format, unlike in Verdon (2018) eqn 10
     Args:
         indices (list): list of qubits which contain the bits
-    Returns:
-        PauliSum: qubit ops for storing quantum binary numbers
     """
     def __init__(self, qubits):
         self.qubits = qubits
@@ -33,8 +31,6 @@ class PositionOp(object):
     Creates a position operator
         Args:
             indices (list): indices of the qubits that the discretized CV is stored on 
-        Returns:
-            (cirq PauliSum): position operator in the Somma convention
     """
     def __init__(self, qubits):
         self.qubits = qubits
@@ -95,9 +91,6 @@ class MomentumOp(PositionOp):
 
     Args:
         indices (list): qubits that the discretized CV is stored on [index0,index1,index2,...,indexn]
-
-    Returns:
-        (cirq PauliSum): momentum operator in the Somma convention
     """
     def __init__(self, qubits):
         super().__init__(qubits)
