@@ -32,7 +32,7 @@ def visualize_kick_momentum():
     circuit += centeredQFT(qubits)
     init_state = cirq.Simulator().simulate(circuit).final_state_vector
 
-    circuit += centeredQFT(qubits, inverse=true)
+    circuit += centeredQFT(qubits, inverse=True)
     circuit += kick_momentum(qubits, 1)
     circuit += centeredQFT(qubits)
     final_state = cirq.Simulator().simulate(circuit).final_state_vector
@@ -50,7 +50,7 @@ def test_verify_centered_fourier():
         """
         N = 2 ** len(qubits)
         circuit = kick_position(qubits, N / 2)
-        circuit += QFT(qubits, inverse)
+        circuit += QFT(qubits, inverse=inverse)
         circuit += kick_position(qubits, N / 2)
         return circuit
 
@@ -162,7 +162,7 @@ def test_phi_eigenequation(quiet=True):
             x_ket = prep_state_integer(x_ket_int, precision)
 
             # we expect the state to be phased by exp(i*x)
-            x_ket_ana = np.exp(-1j * x) * np.array(x_ket)
+            x_ket_ana = np.exp(1j * x) * np.array(x_ket)
 
             # do the eigenvalue equation sending |phi=x> -> exp(ix)|p=x>
             eigen_layer = init_phi + discrete_continuous(-1, [phi])
