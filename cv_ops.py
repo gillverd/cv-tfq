@@ -9,18 +9,24 @@ class BinaryOp(object):
         indices (list): list of qubits which contain the bits
     """
     def __init__(self, qubits):
+        for q in qubits:
+            if not isinstance(q, cirq.Qid):
+                raise TypeError("All entries of qubits must inherit from cirq.Qid")
         self.qubits = qubits
-        self.N = len(self.qubits)
+        self.precision = len(self.qubits)
         op = cirq.PauliSum()
         for n, q in enumerate(self.qubits):
-            J = cirq.PauliString(-2**(self.N - n - 1)/2 * cirq.Z(q))
-            I = cirq.PauliString(2**(self.N - n - 1)/2 * cirq.I(q))
+            J = cirq.PauliString(-2**(self.precision - n - 1)/2 * cirq.Z(q))
+            I = cirq.PauliString(2**(self.precision - n - 1)/2 * cirq.I(q))
             op += J
             op += I
         self.op = op
 
     def __str__(self):
         return str(self.op)
+
+    def __eq__(self, o):
+        return (self.__class__ == o.__class__) and (self.op == o.op)
 
 
 class PositionOp(object):
@@ -33,13 +39,16 @@ class PositionOp(object):
             indices (list): indices of the qubits that the discretized CV is stored on 
     """
     def __init__(self, qubits):
+        for q in qubits:
+            if not isinstance(q, cirq.Qid):
+                raise TypeError("All entries of qubits must inherit from cirq.Qid")
         self.qubits = qubits
-        self.N = len(self.qubits)
+        self.precision = len(self.qubits)
         op = cirq.PauliSum()
         for n, q in enumerate(self.qubits):
-            op += cirq.PauliString(-2 ** (self.N - n - 1), cirq.Z(q))
+            op += cirq.PauliString(-2 ** (self.precision - n - 1), cirq.Z(q))
         op -= cirq.PauliString(cirq.I(qubits[-1]))
-        op *= np.sqrt(2 * np.pi / (2 ** self.N)) / 2
+        op *= np.sqrt(2 * np.pi / (2 ** self.precision)) / 2
 
         self.op = op
         
