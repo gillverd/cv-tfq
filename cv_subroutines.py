@@ -3,6 +3,53 @@ import tensorflow_quantum as tfq
 import numpy as np
 from cv_ops import BinaryOp, PositionOp, MomentumOp
 
+
+def ComputationalLayerBinary(s, qubits):
+    """
+    prepare a computational state corresponding to the binary string s. No
+    previous layer expected since this will initialize a circuit's state
+    Args:
+        s (:string:): binary string representing the state to be prepared,
+            that accounts for all qubits in the circuit
+        qubits (:list: [qubits]): list of qubits that contain the bits
+    Returns:
+        (circuit): state preparation layer to prepare the state represented
+                    by binary state 's'
+    """
+    if len(s) != len(qubits):
+        raise ValueError("Binary string must be same length as qubits")
+
+    circuit = cirq.Circuit()
+    for ind, c in enumerate(s):
+        if c == "1":
+            circuit += cirq.X(qubits[ind])
+        else:
+            circuit += cirq.I(qubits[ind])
+    return circuit
+
+
+def ComputationalLayerInteger(j, qubits):
+    """
+    prepare a computational state |j> on the given qubits
+    Args:
+        j (int): Integer representing the decimal value of the qubit state
+            to be prepared on the provided qubits
+        qubits (:list: [qubits]): ordered list of qubits
+    Returns:
+        (circuit): state preparation layer to prepare state |j>
+    """
+    if j < 0:
+        raise ValueError("Cannot prepare state based on negative value")
+
+    n = len(qubits)
+    if j >= 2 ** n:
+        raise ValueError("Cannot prepare state |%i> on %i qubits" % (j, n))
+
+    binstr = bin(j)[2:]
+    # pad the resulting binary string
+    binstr = "0" * (n - len(binstr)) + binstr
+    return ComputationalLayerBinary(binstr, qubits)
+
 def QFT(qubits, swap=True, inverse=False):
     '''
     Calculates the Quantum Fourier Transform (or inverse) with optional swaps.
@@ -78,50 +125,6 @@ def kick_momentum(qubits, kicks):
     return tfq.util.exponential([BinaryOp(qubits).op], [kick_magnitude])
 
 
-def discrete_continuous(parameter, operators):
-    """
-    Create a hybrid discrete-continuous layer using position, momentum, and standard operators.
-    args:
-        parameter (float): value to be used as the parameter in the parametric layer
-            created using the combined SymplecticOperator of all passed operators
-        operators (list): Operators from which to create the layer.
-            All operators in this list are Multiplied together to create the parameterized layer;
-            therefore it is an error to pass operators which share indices
-    """
-    operator_list = []
-    pi_list = []
-    phi_list = []
-    layer = cirq.Circuit()
-    operator_ = cirq.PauliSum()
-
-    # compose a product of the operators
-    for operator in operators:
-        if isinstance(operator, cirq.PauliSum):
-            operator_list.append(operator)
-            op = operator
-        elif isinstance(operator, PositionOp) and not isinstance(operator, MomentumOp):
-            phi_list.append(operator)
-            op = operator.op
-        elif isinstance(operator, MomentumOp):
-            pi_list.append(operator)
-            op = operator.op
-        else:
-            raise TypeError("Invalid operator type passed to discrete_continuous_layer")
-
-        operator_ *= op
-
-    for pi in pi_list:
-        layer += centeredQFT(pi.qubits, inverse=False)
-
-    parameter = float(parameter)
-    layer += tfq.util.exponential([operator_], [parameter])
-
-    for pi in pi_list:
-        layer += centeredQFT(pi.qubits, inverse=True)
-
-    return layer
-
-
 def adder(control: list, target: list):
     """
     construct an adder layer on control and target discretized registers
@@ -174,6 +177,52 @@ def swap(control: list, target: list):
     CNOT3 = CNOT2 + subtractor(control, target)
     return CNOT3
 
+def discrete_continuous(parameter, operators):
+    """
+    Create a hybrid discrete-continuous layer using position, momentum, and standard operators.
+    args:
+        parameter (float): value to be used as the parameter in the parametric layer
+            created using the combined SymplecticOperator of all passed operators
+        operators (list): Operators from which to create the layer.
+            All operators in this list are Multiplied together to create the parameterized layer;
+            therefore it is an error to pass operators which share indices
+    """
+    operator_list = []
+    pi_list = []
+    phi_list = []
+    layer = cirq.Circuit()
+    operator_ = None
+
+    # compose a product of the operators
+    for operator in operators:
+        if isinstance(operator, cirq.PauliSum):
+            operator_list.append(operator)
+            op = operator
+        elif isinstance(operator, PositionOp) and not isinstance(operator, MomentumOp):
+            phi_list.append(operator)
+            op = operator.op
+        elif isinstance(operator, MomentumOp):
+            pi_list.append(operator)
+            op = operator.op
+        else:
+            raise TypeError("Invalid operator type passed to discrete_continuous_layer")
+
+        if operator_ is None:
+            operator_ = op
+        else:
+            operator_ *= op
+
+    for pi in pi_list:
+        layer += centeredQFT(pi.qubits, inverse=False)
+
+    parameter = float(parameter)
+    layer += tfq.util.exponential([operator_], [parameter])
+
+    for pi in pi_list:
+        layer += centeredQFT(pi.qubits, inverse=True)
+
+    return layer
+
 def signum_layer(qmode: list):
     """
     construct a signum layer on a given CV qmode
@@ -208,3 +257,4 @@ def relu_layer(strength, qmode: list):
     op = signum_op * phi.op * signum_op
     relu_layer = tfq.util.exponential([signum_op, phi.op, signum_op], [1.0, 1.0, 1.0])
     return relu_layer
+
