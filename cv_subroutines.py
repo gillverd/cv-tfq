@@ -116,7 +116,7 @@ def kick_momentum(qubits, kicks):
     Construct a layer to kick a momentum state by a certain number of steps on
     a discretized CV lattice.
     Args:
-        indices (list): the qubits on which the kick will act
+        qubits (list): the qubits on which the kick will act
         kicks (float): number of kicks to give the input state.  Must be an integer for clock kicking.
     Returns:
         displace (circuit): op to apply discrete kick to momentum register
@@ -208,7 +208,7 @@ def discrete_continuous(parameter, operators):
             raise TypeError("Invalid operator type passed to discrete_continuous_layer")
 
         if operator_ is None:
-            operator_ = op
+            operator_ = op.copy()
         else:
             operator_ *= op
 
