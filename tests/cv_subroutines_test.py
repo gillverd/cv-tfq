@@ -211,7 +211,7 @@ def test_phi_clock(quiet=True):
 
             for k, (v2, v3) in enumerate(zip(psi1, psi1_ana)):
                 # dense coding
-                if math.isclose(v2, 0, abs_tol=0.1) and math.isclose(v3, 0, abs_tol=0.1):
+                if math.isclose(np.abs(v2), 0, abs_tol=0.1) and math.isclose(v3, 0, abs_tol=0.1):
                     continue
                 quiet_print("  %2i    " % k,
                             "%7.4f+%7.4f   " % (v2.real, v2.imag),
@@ -315,7 +315,7 @@ def test_phi_adder_stepwise(quiet=True):
     # that x-value computed directly!
     for xA_index in range(N):
         # choose one of the valid grid position for the control register
-        x_A = a + tau + xA_index # true position in register A
+        x_A = a + tau * xA_index # true position in register A
         j = domain_bin(x_A, n) # str idicial position representation of phi
         j_int = int(j, base=2)
         for xB_index in range(N):
@@ -336,7 +336,7 @@ def test_phi_adder_stepwise(quiet=True):
             phiB_prep = phiA_prep + ComputationalLayerBinary(k_padded, all_qubits)
 
             # kick by the true position
-            x_A_pi_B = phiB_prep + discrete_continuous(x_A, [pi_target])
+            x_A_pi_B = phiB_prep + discrete_continuous(-x_A, [pi_target])
 
             # observe the outcome at the target register
             phiB_i = cirq.Simulator().simulate(phiB_prep).final_state_vector
@@ -356,7 +356,7 @@ def test_phi_adder_stepwise(quiet=True):
             )
             quiet_print("index    simu           expect")
             for k, (v2, v3) in enumerate(zip(phiB_f_sim, phiB_f_ana)):
-                if math.isclose(v2, 0, abs_tol=0.1) and math.isclose(v3, 0, abs_tol=0.1):
+                if math.isclose(np.abs(v2), 0, abs_tol=0.1) and math.isclose(v3, 0, abs_tol=0.1):
                     continue
                 quiet_print("  %2i    " % k,
                     "%4.2f+%4.2f   " % (v2.real, v2.imag),
@@ -364,3 +364,16 @@ def test_phi_adder_stepwise(quiet=True):
                 )
                 np.testing.assert_almost_equal(v2, v3, decimal=2)
                                                                 
+
+
+def main():
+    #visualize_kick_momentum()
+    test_verify_centered_fourier()
+    test_phi_fourier_consistency()
+    test_phi_eigenequation()
+    test_phi_clock()
+    test_phi_adder()
+    test_phi_adder_stepwise()
+
+if __name__ == "__main__":
+    main()
