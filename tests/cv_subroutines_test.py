@@ -241,16 +241,15 @@ def test_phi_adder(quiet=True):
         pi_target = MomentumOp(target_register)
 
         s = 1 # kick angle will 'offset-add' xA+xB
-
         for xA_index in range(N):
             # choose one of the valid grid positions for the control register
-            x_A = a + tau * xA_index # true position in register A
-            j = domain_bin(x_A, n) # str indical position representation of phi
+            x_A = a + tau * xA_index  # true position in register A
+            j = domain_bin(x_A, n)  # str indical position representation of phi
             j_int = int(j, base=2)
             for xB_index in range(N):
 
-                x_B = a + tau * xB_index # true initial position in register B
-                k = domain_bin(x_B, n) # str indicial momentum representation of pi
+                x_B = a + tau * xB_index  # true initial position in register B
+                k = domain_bin(x_B, n)  # str indicial momentum representation of pi
                 k_int = int(k, base=2)
 
                 # index representation of the final wf on target register
@@ -263,13 +262,15 @@ def test_phi_adder(quiet=True):
                 k_padded = "0" * len(control_register) + k
                 phiA_prep = ComputationalLayerBinary(j_padded, all_qubits)
                 phiB_prep = phiA_prep + ComputationalLayerBinary(k_padded, all_qubits)
+                
+                phi_pi_operator = phiB_prep + discrete_continuous(-s, [phi_control, pi_target])
 
-                phi_pi_operator = phiB_prep + discrete_continuous(s, [phi_control, pi_target])
                 # observe the outcome at the target register
                 phiB_i = cirq.Simulator().simulate(phiB_prep).final_state_vector
                 phiB_f_sim = cirq.Simulator().simulate(phi_pi_operator).final_state_vector
                 phiB_f_ana = prep_state_binary(phi_f_ana)
 
+                
                 def quiet_print(*s):
                     if not quiet:
                         print(*s)
@@ -282,7 +283,7 @@ def test_phi_adder(quiet=True):
                 )
                 quiet_print("index    simu           expect")
                 for k, (v2, v3) in enumerate(zip(phiB_f_sim, phiB_f_ana)):
-                    if math.isclose(v2, 0, abs_tol=0.1) and math.isclose(v3, 0, abs_tol=0.1):
+                    if math.isclose(np.abs(v2), 0, abs_tol=0.1) and math.isclose(v3, 0, abs_tol=0.1):
                         continue
                     quiet_print("  %2i    " % k,
                                 "%4.2f+%4.2f   " % (v2.real, v2.imag),
