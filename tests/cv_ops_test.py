@@ -1,3 +1,6 @@
+import sys
+sys.path.append("..")
+
 from cv_ops import *
 from cv_subroutines import ComputationalLayerInteger
 import tensorflow_quantum as tfq
