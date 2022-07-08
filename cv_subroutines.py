@@ -208,7 +208,7 @@ def discrete_continuous(parameter, operators):
             raise TypeError("Invalid operator type passed to discrete_continuous_layer")
 
         if operator_ is None:
-            operator_ = op
+            operator_ = op.copy()
         else:
             operator_ *= op
 
