@@ -2,6 +2,7 @@ import sys
 sys.path.append("..")
 
 import math
+import argparse
 
 import cirq
 import numpy as np
@@ -367,13 +368,18 @@ def test_phi_adder_stepwise(quiet=True):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Tests for CV Subroutines")
+    parser.add_argument("-l", "--loud", help = "Prints debugging messages", action='store_true')
+    args = parser.parse_args()
+    quiet = not args.loud
+    
     #visualize_kick_momentum()
     test_verify_centered_fourier()
-    test_phi_fourier_consistency()
-    test_phi_eigenequation()
-    test_phi_clock()
-    test_phi_adder()
-    test_phi_adder_stepwise()
+    test_phi_fourier_consistency(quiet=quiet)
+    test_phi_eigenequation(quiet=quiet)
+    test_phi_clock(quiet=quiet)
+    test_phi_adder(quiet=quiet)
+    test_phi_adder_stepwise(quiet=quiet)
 
 if __name__ == "__main__":
     main()

@@ -6,7 +6,7 @@ class BinaryOp(object):
     Create a qubit register for storing a quantum binary number.
     Our operators are mapped to qubits in big-endian format, unlike in Verdon (2018) eqn 10
     Args:
-        indices (list): list of qubits which contain the bits
+        qubits (list): list of qubits which contain the bits
     """
     def __init__(self, qubits):
         for q in qubits:
@@ -36,7 +36,7 @@ class PositionOp(object):
     Note that our operators are mapped to qubits in big-endian format (MSB at left-most position)
     Creates a position operator
         Args:
-            indices (list): indices of the qubits that the discretized CV is stored on 
+            qubits (list): indices of the qubits that the discretized CV is stored on 
     """
     def __init__(self, qubits):
         for q in qubits:
@@ -99,7 +99,7 @@ class MomentumOp(PositionOp):
     centered Fourier transforms whenever it is exponentiated
 
     Args:
-        indices (list): qubits that the discretized CV is stored on [index0,index1,index2,...,indexn]
+        qubits (list): qubits that the discretized CV is stored on [qubit0,qubit1,qubit2,...,qubitn]
     """
     def __init__(self, qubits):
         super().__init__(qubits)
