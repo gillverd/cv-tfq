@@ -17,3 +17,21 @@ def trace_out(dm, size1, size2, sv=False):
     dm = dm.reshape([size1, size1, size2, size2])
     t = trace(dm)
     return t
+
+def domain_float(bin, domain=None, lendian=False):
+    precision = len(bin)
+    if domain == None:
+        domain = [
+            -np.sqrt(2 * np.pi * 2 ** precision) / 2,
+            np.sqrt(2 * np.pi * 2 ** precision) / 2,
+        ]
+    a, b = domain[0], domain[1]
+    base = 1 / 2 ** precision
+
+    v = a
+    if not lendian:
+        bin = bin[::-1]
+    for idx, bit in enumerate(bin):
+        v += int(bit) * (2**idx) * base * (b - a)
+
+    return v
