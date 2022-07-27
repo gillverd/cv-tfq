@@ -59,13 +59,33 @@ class PositionOp(object):
         return (self.__class__ == o.__class__) and (self.op == o.op)
 
     def __add__(self, o):
-        if not isinstance(o, self.__class__):
+        if isinstance(o, self.__class__):
+            new_cv = self.__class__(sorted(set(self.qubits + o.qubits)))
+            new_cv.op = self.op + o.op
+            return new_cv
+        elif isinstance(o, int) or isinstance(o, float):
+            new_cv = self.__class__(self.qubits)
+            new_cv.op = self.op
+            for q in new_cv.qubits:
+                new_cv.op += cirq.PauliString(o, cirq.I(q))
+            return new_cv
+        else:
             raise TypeError(
-                "Adding is only defined between instances of the same CV class"
+                "Adding is only defined between instances of the same CV class \
+            or between a CV class instance and a number"
             )
-        new_cv = self.__class__(sorted(set(self.qubits + o.qubits)))
-        new_cv.op = self.op + o.op
-        return new_cv
+    
+    def __radd__(self, o):
+        return self.__add__(o)
+    
+    def __sub__(self, o):
+        return self.__add__(-1*o)
+    
+    def __rsub__(self, o):
+        if isinstance(o, int) or isinstance(o, float):
+            new_cv = self.__class__(self.qubits)
+            new_cv.op = -1*self.op
+            return new_cv.__add__(o)
 
     def __mul__(self, o):
         if isinstance(o, self.__class__):
@@ -81,6 +101,21 @@ class PositionOp(object):
                 "Multiplication is only defined between instances of the same CV class \
              or between a CV class instance and a number"
             )
+
+    def __rmul__(self, o):
+        if isinstance(o, int) or isinstance(o, float):
+            return self.__mul__(o)
+
+    def __truediv__(self, o):
+        if not (isinstance(o, int) or isinstance(o, float)):
+            raise TypeError(
+                "Division is only defined between a CV class and a number"
+            )
+        if o == 0:
+            return ValueError(
+                "Division by 0 Error"
+            )
+        return self.__mul__(1.0 / o)
 
     def __pow__(self, power):
         new_cv = self.__class__(self.qubits)
