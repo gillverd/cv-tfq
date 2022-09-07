@@ -1,3 +1,4 @@
+"""Contains code for all relevant CV subroutines."""
 import cirq
 import tensorflow_quantum as tfq
 import numpy as np
@@ -6,15 +7,20 @@ from cv_ops import BinaryOp, PositionOp, MomentumOp
 
 def ComputationalLayerBinary(s, qubits):
     """
-    prepare a computational state corresponding to the binary string s. No
-    previous layer expected since this will initialize a circuit's state
+    Prepare a computational state corresponding to the binary string s.
+
     Args:
-        s (:string:): binary string representing the state to be prepared,
+        - s (string): binary string representing the state to be prepared,
             that accounts for all qubits in the circuit
-        qubits (:list: [qubits]): list of qubits that contain the bits
+        - qubits (list): list of qubits that contain the bits
+
     Returns:
-        (circuit): state preparation layer to prepare the state represented
-                    by binary state 's'
+        - (circuit): state preparation layer to prepare the state represented
+            by binary state 's'
+
+    Raises:
+        - ValueError: if the binary string is not the same length as the number
+            of qubits
     """
     if len(s) != len(qubits):
         raise ValueError("Binary string must be same length as qubits")
@@ -30,13 +36,18 @@ def ComputationalLayerBinary(s, qubits):
 
 def ComputationalLayerInteger(j, qubits):
     """
-    prepare a computational state |j> on the given qubits
+    Prepare a computational state |j> on the given qubits.
+
     Args:
-        j (int): Integer representing the decimal value of the qubit state
+        - j (int): Integer representing the decimal value of the qubit state
             to be prepared on the provided qubits
-        qubits (:list: [qubits]): ordered list of qubits
+        - qubits (list): ordered list of qubits
+
     Returns:
-        (circuit): state preparation layer to prepare state |j>
+        - (circuit): state preparation layer to prepare state |j>
+
+    Raises:
+        - ValueError: if j < 0 or if j > 2^(number of qubits)
     """
     if j < 0:
         raise ValueError("Cannot prepare state based on negative value")
@@ -51,10 +62,19 @@ def ComputationalLayerInteger(j, qubits):
     return ComputationalLayerBinary(binstr, qubits)
 
 def QFT(qubits, swap=True, inverse=False):
-    '''
-    Calculates the Quantum Fourier Transform (or inverse) with optional swaps.
+    """
+    Calculate the Quantum Fourier Transform (or inverse) with optional swaps.
+
     Adapted from https://quantumai.google/cirq/experiments/textbook_algorithms#quantum_fourier_transform 
-    '''
+
+    Args:
+        - qubits (list): ordered list of qubits
+        - swap (optional, bool): whether or not to use swaps at the end of the QFT
+        - inverse (optional, bool): whether or not to invert the QFT
+
+    Returns:
+        - (circuit): the QFT circuit as defined by the input params
+    """
 
     def qft_base(qubits):
         qreg = list(qubits)
@@ -83,11 +103,20 @@ def QFT(qubits, swap=True, inverse=False):
 
 
 def centeredQFT(qubits, swap=True, inverse=False):
-    '''
-    QFT modified to operate on a Somma-convention position operator; the centered
-    Fourier Transform applies phases to elements in a list in a manner that is
+    """
+    QFT modified to operate on a Somma-convention position operator.
+    
+    The centered Fourier Transform applies phases to elements in a list in a manner that is
     symmetric w/r to the center element of the list instead of the initial element
-    '''
+
+    Args:
+        - qubits (list): ordered list of qubits
+        - swap (optional, bool): whether or not to use swaps at the end of the QFT
+        - inverse (optional, bool): whether or not to invert the QFT
+
+    Returns:
+        - (circuit): the centeredQFT circuit as defined by the input params
+    """
     center_qft = cirq.Circuit(cirq.X(qubits[0]))
     center_qft += QFT(qubits, swap=swap, inverse=inverse)
     center_qft += cirq.X(qubits[0])
@@ -95,14 +124,17 @@ def centeredQFT(qubits, swap=True, inverse=False):
 
 def kick_position(qubits, kicks):
     """
-    Construct a layer to kick a position state by a certain number of steps on
-    a discretized CV lattice. If |j> is a computational basis state, this does:
-            |j> -> |j + kicks>
+    Construct a layer to kick a position state by a certain number of steps on a discretized CV lattice.
+    
+    If |j> is a computational basis state, this does:
+    |j> -> |j + kicks>
+
     Args:
-        qubits (list): the qubits on which the kick will act
-        kicks (float): number of kicks to give the input state.  Must be an integer for clock kicking.
+        - qubits (list): the qubits on which the kick will act
+        - kicks (float): number of kicks to give the input state.  Must be an integer for clock kicking.
+    
     Returns:
-        Fdag (cirq circuit): op to apply discrete kick to position register
+        - (circuit): op to apply discrete kick to position register
     """
     F = QFT(qubits)
     kick_magnitude = 2 * np.pi * kicks / (2 ** len(qubits))
@@ -113,13 +145,14 @@ def kick_position(qubits, kicks):
 
 def kick_momentum(qubits, kicks):
     """
-    Construct a layer to kick a momentum state by a certain number of steps on
-    a discretized CV lattice.
+    Construct a layer to kick a momentum state by a certain number of steps on a discretized CV lattice.
+
     Args:
-        qubits (list): the qubits on which the kick will act
-        kicks (float): number of kicks to give the input state.  Must be an integer for clock kicking.
+        - qubits (list): the qubits on which the kick will act
+        - kicks (float): number of kicks to give the input state.  Must be an integer for clock kicking.
+
     Returns:
-        displace (circuit): op to apply discrete kick to momentum register
+        - (circuit): op to apply discrete kick to momentum register
     """
     kick_magnitude = 2 * np.pi * kicks / (2 ** len(qubits))
     return tfq.util.exponential([BinaryOp(qubits).op], [kick_magnitude])
@@ -127,13 +160,16 @@ def kick_momentum(qubits, kicks):
 
 def adder(control: list, target: list):
     """
-    construct an adder layer on control and target discretized registers
-            |x1>|x2> -> |x1>|x1 + x2>
+    Construct an adder layer on control and target discretized registers.
+
+    |x1>|x2> -> |x1>|x1 + x2>
+
     Args:
-        control (list): register containing control CV operators
-        target (list): register containing target CV operators
+        - control (list): register containing control CV operators
+        - target (list): register containing target CV operators
+
     Returns:
-        adder_layer (circuit): Layer to add control and target eigenstates
+        - (circuit): Layer to add control and target eigenstates
             into the target register
     """
     theta = -1
@@ -144,15 +180,17 @@ def adder(control: list, target: list):
 
 def subtractor(control: list, target: list):
     """
-    construct a subtractor for a control and target discretized registers
-            |x1>|x2> -> |x1>|x1 - x2>
-    Args:
-        control (list): register containing control CV operators
-        target (list): register containing target CV operators
-    Returns:
-        subtractor_layer (circuit): Layer to subtract control from target qmode
-    """
+    Construct a subtractor for a control and target discretized registers.
 
+    |x1>|x2> -> |x1>|x1 - x2>
+
+    Args:
+        - control (list): register containing control CV operators
+        - target (list): register containing target CV operators
+
+    Returns:
+        - (circuit): Layer to subtract control from target qmode
+    """
     # invert the eigenvalue of the control register by FF|x> = |-x>
     Fc1 = centeredQFT(control)
     Fc2 = Fc1 + centeredQFT(control)
@@ -161,17 +199,19 @@ def subtractor(control: list, target: list):
 
 def swap(control: list, target: list):
     """
-    construct a SWAP for two discretized registers
-            |x1>|x2> -> |x2>|x1>
-    this layer is constructed from a generalization of the CNOT scheme for
-    swapping two qubits
-    Args:
-        control (list): register containing control CV operators
-        target (list): register containing target CV operators
-    Returns:
-        SWAP_layer (circuit): Layer to swap control and target qmodes
-    """
+    Construct a SWAP for two discretized registers.
 
+    |x1>|x2> -> |x2>|x1>
+    
+    This layer is constructed from a generalization of the CNOT scheme for
+    swapping two qubits
+
+    Args:
+        - control (list): register containing control CV operators
+        - target (list): register containing target CV operators
+    Returns:
+        - (circuit): Layer to swap control and target qmodes
+    """
     CNOT1 = subtractor(control, target)
     CNOT2 = CNOT1 + subtractor(target, control)
     CNOT3 = CNOT2 + subtractor(control, target)
@@ -180,12 +220,16 @@ def swap(control: list, target: list):
 def discrete_continuous(parameter, operators):
     """
     Create a hybrid discrete-continuous layer using position, momentum, and standard operators.
-    args:
-        parameter (float): value to be used as the parameter in the parametric layer
-            created using the combined SymplecticOperator of all passed operators
-        operators (list): Operators from which to create the layer.
-            All operators in this list are Multiplied together to create the parameterized layer;
+
+    Args:
+        - parameter (float): value to be used as the parameter in the parametric layer
+            created using the combined operators of all passed operators
+        - operators (list): Operators from which to create the layer. All operators in this 
+            list are multiplied together to create the parameterized layer;
             therefore it is an error to pass operators which share indices
+    
+    Returns:
+        - (circuit): the hybrid layer as a circuit
     """
     operator_list = []
     pi_list = []
@@ -225,11 +269,13 @@ def discrete_continuous(parameter, operators):
 
 def signum_layer(qmode: list):
     """
-    construct a signum layer on a given CV qmode
+    Construct a signum layer on a given CV qmode.
+
     Args:
-        qmode (list): register containing respective discretized operators
+        - qmode (list): register containing respective discretized operators
+
     Returns:
-        sig_layer (circuit): Layer to enact signum function on input qmode
+        - (circuit): Layer to enact signum function on input qmode
     """
     signum_op = cirq.PauliSum()
     J = cirq.PauliString(-1/2 * cirq.Z(qmode[0]))
@@ -242,11 +288,13 @@ def signum_layer(qmode: list):
 
 def relu_layer(strength, qmode: list):
     """
-    implement a RELU on a given CV mode
+    Implement a ReLU on a given CV mode.
+
     Args:
-        qmode (list): register containing respective discretized operators
+        - qmode (list): register containing respective discretized operators
+
     Returns:
-        relu_layer (circuit): Layer to enact RELU function on input qmode
+        - (circuit): Layer to enact RELU function on input qmode
     """
     signum_op = cirq.PauliSum()
     J = cirq.PauliString(-strength/2 * cirq.Z(qmode[0]))
@@ -257,4 +305,3 @@ def relu_layer(strength, qmode: list):
     op = signum_op * phi.op * signum_op
     relu_layer = tfq.util.exponential([signum_op, phi.op, signum_op], [1.0, 1.0, 1.0])
     return relu_layer
-
