@@ -1,17 +1,136 @@
+"""Contains all utility functions that may be useful for CV operations."""
 import numpy as np
 from tensorflow.linalg import trace
+from cv_subroutines import ComputationalLayerInteger
+import matplotlib.pyplot as plt
 
-# Adapted from: https://qiskit.org/documentation/_modules/qiskit/quantum_info/states/densitymatrix.html#DensityMatrix
+
+def plot_wfs(sim_wfs):
+    """
+    Plot the provided wavefunction(s).
+
+    The real, imaginary, and nomalized wavefunctions are plotted each as columnar elements
+    in a 1 x 3 subplot.
+
+    Args:
+        - sim_wfs (array): the array of wavefunctions to plot
+
+    Returns:
+        - None
+    """
+    d = np.size(sim_wfs[0])
+    fig, (ax_re, ax_im, ax_norm) = plt.subplots(1, 3, sharey=True, figsize=(15, 30))
+    for wf in sim_wfs:
+        ax_re.plot(range(d), [v.real for v in np.nditer(wf.T)])
+        ax_im.plot(range(d), [v.imag for v in np.nditer(wf.T)])
+        ax_norm.plot(range(d), [np.abs(v) for v in np.nditer(wf.T)])
+
+    ax_re.set_title("Re(psi)")
+    ax_im.set_title("Im(psi)")
+    ax_norm.set_title("norm(psi)")
+    plt.legend(["kick %i" % k for k in range(d)])
+    plt.show()
+
+def prep_state_integer(j, n):
+    """
+    Prepare a computational state |j> in array form.
+    
+    Sister state prep layer is ComputationalLayerInteger
+
+    Args:
+        - j (int): Integer value of the qubit state to be prepared
+        - n (int): Number of qubits in register
+    
+    Returns:
+        - array form of wavefunction representing |j> on n qubits
+    """
+    return np.array([0 if i != j else 1 for i in range(2 ** n)])
+
+
+def prep_state_binary(s):
+    """
+    Prepare a computational state from a binary string.
+    
+    Sister state prep layer is ComputationalLayerBinary
+    
+    Args:
+        - s (str): binary string representing the state to be prepared
+
+    Returns:
+        - array form of wavefunction representing binary string s
+    """
+    j = int(s, base=2)
+    return prep_state_integer(j, len(s))
+
+
+def prepare_base_state(j, n):
+    """
+    Prepare a basis state |j> on n_qubits.
+    
+    Also provides the gateset to generate this state.
+
+    Args:
+        - j (int): the state to prepare
+        - n (int): the number of qubits
+
+    Returns:
+        - (cirq.Circuit): the prepared state in the form of a circuit
+        - (list): list containing the statevector for this prepared circuit
+    """
+    state_prep = ComputationalLayerInteger(j, range(n))
+    state = [0 for i in range(2 ** n)]
+    state[j] = 1
+
+    return state_prep, state
+
 def pure_density_matrix_to_statevector(dm):
+    """
+    Convert density matrix to statevector.
+
+    This assumes that the density matrix represents a pure state. 
+    Adapted from: https://qiskit.org/documentation/_modules/qiskit/quantum_info/states/densitymatrix.html#DensityMatrix
+
+    Args:
+        - dm (NDArray[N, N]): the NxN matrix representing the density matrix
+
+    Returns:
+        - (NDArray[N]): the array that represents the statevector
+    """
     evals, evecs = np.linalg.eig(dm)
     return evecs[:, np.argmax(evals)]
 
 def state_vector_to_density_matrix(sv):
+    """
+    Convert statevector to density matrix.
+
+    Args:
+        - sv (NDArray[N]): the statevector to be converted
+
+    Returns:
+        - (NDArray[N, N]): the associated density matrix
+    """
     psi = np.expand_dims(sv, axis=0)
     rho = psi.conj().T @ psi
     return rho
 
 def trace_out(dm, size1, size2, sv=False):
+    """
+    Trace out the density matrix into the given sizes.
+
+    size1 * size2 == dm.shape[0] must be true.
+
+    Args:
+        - dm (NDArray): the density matrix (or statevector) to be traced out
+        - size1 (int): the size of the first matrix traced out (the one that will
+            be returned)
+        - size2 (int): the size of the second matrix to be traced out (will not be 
+            returned)
+        - sv (optional, bool): whether or not the input was actually a density matrix
+            or a statevector (which is then converted to a density matrix)
+
+    Returns:
+        - (NDArray[size1, size1]): the traced out matrix
+    """
     if sv:
         dm = state_vector_to_density_matrix(dm)
     dm = dm.reshape([size1, size1, size2, size2])
@@ -19,6 +138,19 @@ def trace_out(dm, size1, size2, sv=False):
     return t
 
 def domain_float(bin, domain=None, lendian=False):
+    """
+    Convert discretized value to be converted back into a float.
+    
+    Args:
+        - bin (list): the digital representation of the continuous variable
+        - domain (optional, list): the upper and lower bounds on the domain for
+            the representation
+        - lendian (optional, bool): whether this representation is in big or 
+            little endian
+
+    Returns:
+        - (float): the converted floating point value
+    """
     precision = len(bin)
     if domain == None:
         domain = [
@@ -37,6 +169,20 @@ def domain_float(bin, domain=None, lendian=False):
     return v
 
 def domain_float_tf(bins, precision, domain=None):
+    """
+    Convert discretized value to be converted back into a float.
+    
+    Compatible with @tf.function decorators. 
+
+    Args:
+        - bin (list): the digital representation of the continuous variable
+        - precision (int): len(bin)
+        - domain (optional, list): the upper and lower bounds on the domain for
+            the representation
+
+    Returns:
+        - (float): the converted floating point value
+    """
     if domain == None:
         domain = [
             -tf.math.sqrt(2 * np.pi * 2 ** precision) / 2,
@@ -54,21 +200,81 @@ def domain_float_tf(bins, precision, domain=None):
     
     return v
 
-def domain_bin_tf(z, precision, domain=None):
+def domain_bin(v, precision, domain=None, lendian=False):
     """
-    passed a float value and domain for discretization, convert it to a string
-    that represents the binary representation of the value on the given domain
-    with an implicit '.' before the MSB
+    Pass a float value and domain for discretization.
+    
+    Convert it to a string that represents the binary representation of the value 
+    on the given domain with an implicit '.' before the MSB
+
     example usage:
         domain_bin(3.6, [3,4], 3) = '101' since .101 => 5/8 = .625 is the nearest
         decimal representation of 3.6 accurate to 3 bits of precision
-        domain_bin(5.2, [3,4], 3) =
-    args:
-        z (float): float to convert to domain-specific binary
-        domain (list): bounds of the discretized continuous variable [x_min,x_max)
-        precision (int): number of bits of precision for output string
-    return:
-        padded_bin (string): string representation of the state representing v
+
+    Args:
+        - v (float): float to convert to domain-specific binary
+        - precision (int): number of bits of precision for output string
+        - domain (list, optional): bounds of the discretized continuous variable [x_min,x_max)
+        - lendian (bool, optional): dictates if the result is in the 'little-endian' format
+    
+    Returns:
+        - (string): string representation of the state representing v
+        discretized on the given domain/precision scheme
+    """
+    if domain == None:
+        domain = [
+            -np.sqrt(2 * np.pi * 2 ** precision) / 2,
+            np.sqrt(2 * np.pi * 2 ** precision) / 2,
+        ]
+
+    a, b = domain
+    # no wrapping for now; just give a value in the range
+    # convert this float to its decimal representation on the interval
+    base = 1 / 2 ** precision
+    # implementing boundary conditions
+    while v < a:
+        v += b - a
+    while v >= b:
+        v -= b - a
+    if v < a or v >= b:
+        print("float %6.4f to be converted is not in the domain provided" % v)
+        raise ValueError
+    decimal_val = int(round((v - a) / (base * (b - a))))
+
+    # construct and pad the binary version of this, to the specified precision
+    unpadded_bin = bin(decimal_val)[2:]
+    padded_bin = (
+        "".join(["0" for i in range(precision - len(unpadded_bin))]) + unpadded_bin
+    )
+    if lendian == True:
+        padded_bin = padded_bin[::-1]
+    if len(padded_bin) > precision:
+        print(padded_bin)
+
+        raise ValueError("binary conversion overflow")
+    return padded_bin
+
+def domain_bin_tf(z, precision, domain=None):
+    """
+    Convert float to discretized bin.
+
+    Passed a float value and domain for discretization, convert it to a string
+    that represents the binary representation of the value on the given domain
+    with an implicit '.' before the MSB
+
+    Compatible with @tf.function decoration.
+
+    Example usage:
+        domain_bin(3.6, [3,4], 3) = [1, 0, 1] since .101 => 5/8 = .625 is the nearest
+        decimal representation of 3.6 accurate to 3 bits of precision
+        
+    Args:
+        - z (float): float to convert to domain-specific binary
+        - precision (int): number of bits of precision for output string
+        - domain (optional, list): bounds of the discretized continuous variable [x_min,x_max)
+    
+    Returns:
+        - (string): string representation of the state representing v
         discretized on the given domain/precision scheme
     """
     if domain == None:
@@ -103,6 +309,7 @@ def domain_bin_tf(z, precision, domain=None):
 
     decimal_val = tf.cast(tf.math.round((v - a) / (base * (b - a))), tf.int32)
 
+    # Converts to binary 
     padded_bin = tf.reverse(tf.math.floormod(tf.bitwise.right_shift(tf.expand_dims(decimal_val, 1), tf.range(precision)), 2), axis=[-1])
     
     return padded_bin

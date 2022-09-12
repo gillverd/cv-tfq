@@ -1,14 +1,35 @@
+"""Contains code for all basic CV operators."""
 import cirq
 import numpy as np
 
 class BinaryOp(object):
     """
     Create a qubit register for storing a quantum binary number.
+
     Our operators are mapped to qubits in big-endian format, unlike in Verdon (2018) eqn 10
-    Args:
-        qubits (list): list of qubits which contain the bits
+    (https://arxiv.org/pdf/1806.09729.pdf)
+
+    Attributes:
+        - qubits (list): list of qubits
+        - precision (int): number of qubits representing the operator
+        - op (cirq.PauliSum): the PauliSum representation of the BinaryOp
     """
+
     def __init__(self, qubits):
+        """
+        Initialize the member variables.
+
+        Args:
+            - qubits (list): list of qubits
+
+        Returns:
+            - None
+
+        Raises:
+            - TypeError: if the qubits are not all instance of the cirq.Qid class, 
+                the op is invalid. This class contains all types of qubits and 
+                higher order qudits
+        """
         for q in qubits:
             if not isinstance(q, cirq.Qid):
                 raise TypeError("All entries of qubits must inherit from cirq.Qid")
@@ -31,14 +52,32 @@ class BinaryOp(object):
 
 class PositionOp(object):
     """
-    Position operator
-    Convention from https://arxiv.org/abs/1503.06319 (author R. D. Somma)
+    Position operator.
+
+    Convention from https://arxiv.org/abs/1503.06319
     Note that our operators are mapped to qubits in big-endian format (MSB at left-most position)
-    Creates a position operator
-        Args:
-            qubits (list): indices of the qubits that the discretized CV is stored on 
+
+    Attributes:
+        - qubits (list): list of qubits
+        - precision (int): number of qubits representing the operator
+        - op (cirq.PauliSum): the PauliSum representation of the BinaryOp
     """
+
     def __init__(self, qubits):
+        """
+        Initialize the member variables.
+
+        Args:
+            - qubits (list): list of qubits
+
+        Returns:
+            - None
+
+        Raises:
+            - TypeError: if the qubits are not all instance of the cirq.Qid class, 
+                the op is invalid. This class contains all types of qubits and 
+                higher order qudits
+        """
         for q in qubits:
             if not isinstance(q, cirq.Qid):
                 raise TypeError("All entries of qubits must inherit from cirq.Qid")
@@ -124,17 +163,27 @@ class PositionOp(object):
 
 class MomentumOp(PositionOp):
     """
-    Momentum operator
-    Convention from https://arxiv.org/abs/1503.06319 (author R. D. Somma)
+    Momentum operator.
+
+    Convention from https://arxiv.org/abs/1503.06319
     Note that our operators are mapped to qubits in big-endian format (MSB at left-most position)
     
-    Creates a momentum operator
     Internally, this operator is the same as the position operator;
     it is a different class so that it will be padded with the proper
     centered Fourier transforms whenever it is exponentiated
 
     Args:
-        qubits (list): qubits that the discretized CV is stored on [qubit0,qubit1,qubit2,...,qubitn]
+        - qubits (list): qubits that the discretized CV is stored on [qubit0,qubit1,qubit2,...,qubitn]
     """
+
     def __init__(self, qubits):
+        """
+        Initialize the member variables.
+
+        Args:
+            - qubits (list): list of qubits
+
+        Returns:
+            - None
+        """
         super().__init__(qubits)
