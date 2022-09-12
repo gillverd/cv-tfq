@@ -1,6 +1,87 @@
 """Contains all utility functions that may be useful for CV operations."""
 import numpy as np
 from tensorflow.linalg import trace
+from cv_subroutines import ComputationalLayerInteger
+import matplotlib.pyplot as plt
+
+
+def plot_wfs(sim_wfs):
+    """
+    Plot the provided wavefunction(s).
+
+    The real, imaginary, and nomalized wavefunctions are plotted each as columnar elements
+    in a 1 x 3 subplot.
+
+    Args:
+        - sim_wfs (array): the array of wavefunctions to plot
+
+    Returns:
+        - None
+    """
+    d = np.size(sim_wfs[0])
+    fig, (ax_re, ax_im, ax_norm) = plt.subplots(1, 3, sharey=True, figsize=(15, 30))
+    for wf in sim_wfs:
+        ax_re.plot(range(d), [v.real for v in np.nditer(wf.T)])
+        ax_im.plot(range(d), [v.imag for v in np.nditer(wf.T)])
+        ax_norm.plot(range(d), [np.abs(v) for v in np.nditer(wf.T)])
+
+    ax_re.set_title("Re(psi)")
+    ax_im.set_title("Im(psi)")
+    ax_norm.set_title("norm(psi)")
+    plt.legend(["kick %i" % k for k in range(d)])
+    plt.show()
+
+def prep_state_integer(j, n):
+    """
+    Prepare a computational state |j> in array form.
+    
+    Sister state prep layer is ComputationalLayerInteger
+
+    Args:
+        - j (int): Integer value of the qubit state to be prepared
+        - n (int): Number of qubits in register
+    
+    Returns:
+        - array form of wavefunction representing |j> on n qubits
+    """
+    return np.array([0 if i != j else 1 for i in range(2 ** n)])
+
+
+def prep_state_binary(s):
+    """
+    Prepare a computational state from a binary string.
+    
+    Sister state prep layer is ComputationalLayerBinary
+    
+    Args:
+        - s (str): binary string representing the state to be prepared
+
+    Returns:
+        - array form of wavefunction representing binary string s
+    """
+    j = int(s, base=2)
+    return prep_state_integer(j, len(s))
+
+
+def prepare_base_state(j, n):
+    """
+    Prepare a basis state |j> on n_qubits.
+    
+    Also provides the gateset to generate this state.
+
+    Args:
+        - j (int): the state to prepare
+        - n (int): the number of qubits
+
+    Returns:
+        - (cirq.Circuit): the prepared state in the form of a circuit
+        - (list): list containing the statevector for this prepared circuit
+    """
+    state_prep = ComputationalLayerInteger(j, range(n))
+    state = [0 for i in range(2 ** n)]
+    state[j] = 1
+
+    return state_prep, state
 
 def pure_density_matrix_to_statevector(dm):
     """
@@ -118,6 +199,60 @@ def domain_float_tf(bins, precision, domain=None):
     v += adder
     
     return v
+
+def domain_bin(v, precision, domain=None, lendian=False):
+    """
+    Pass a float value and domain for discretization.
+    
+    Convert it to a string that represents the binary representation of the value 
+    on the given domain with an implicit '.' before the MSB
+
+    example usage:
+        domain_bin(3.6, [3,4], 3) = '101' since .101 => 5/8 = .625 is the nearest
+        decimal representation of 3.6 accurate to 3 bits of precision
+
+    Args:
+        - v (float): float to convert to domain-specific binary
+        - precision (int): number of bits of precision for output string
+        - domain (list, optional): bounds of the discretized continuous variable [x_min,x_max)
+        - lendian (bool, optional): dictates if the result is in the 'little-endian' format
+    
+    Returns:
+        - (string): string representation of the state representing v
+        discretized on the given domain/precision scheme
+    """
+    if domain == None:
+        domain = [
+            -np.sqrt(2 * np.pi * 2 ** precision) / 2,
+            np.sqrt(2 * np.pi * 2 ** precision) / 2,
+        ]
+
+    a, b = domain
+    # no wrapping for now; just give a value in the range
+    # convert this float to its decimal representation on the interval
+    base = 1 / 2 ** precision
+    # implementing boundary conditions
+    while v < a:
+        v += b - a
+    while v >= b:
+        v -= b - a
+    if v < a or v >= b:
+        print("float %6.4f to be converted is not in the domain provided" % v)
+        raise ValueError
+    decimal_val = int(round((v - a) / (base * (b - a))))
+
+    # construct and pad the binary version of this, to the specified precision
+    unpadded_bin = bin(decimal_val)[2:]
+    padded_bin = (
+        "".join(["0" for i in range(precision - len(unpadded_bin))]) + unpadded_bin
+    )
+    if lendian == True:
+        padded_bin = padded_bin[::-1]
+    if len(padded_bin) > precision:
+        print(padded_bin)
+
+        raise ValueError("binary conversion overflow")
+    return padded_bin
 
 def domain_bin_tf(z, precision, domain=None):
     """
