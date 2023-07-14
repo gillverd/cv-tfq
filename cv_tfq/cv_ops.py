@@ -1,6 +1,6 @@
 """Contains code for all basic CV operators."""
 import cirq
-import numpy as np
+import numpy as np  # type: ignore[import]
 from typing import List, Any
 
 

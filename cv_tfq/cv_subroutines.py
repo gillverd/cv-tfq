@@ -1,7 +1,7 @@
 """Contains code for all relevant CV subroutines."""
 import cirq
 import tensorflow_quantum as tfq  # type: ignore[import]
-import numpy as np
+import numpy as np  # type: ignore[import]
 from typing import List, Optional
 from .cv_ops import BinaryOp, PositionOp, MomentumOp
 

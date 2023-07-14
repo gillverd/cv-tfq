@@ -1,5 +1,5 @@
 """Contains all utility functions that may be useful for CV operations."""
-import numpy as np
+import numpy as np  # type: ignore[import]
 from typing import List, Tuple, Optional
 from tensorflow import linalg as tfl  # type: ignore[import]
 import tensorflow as tf  # type: ignore[import]
