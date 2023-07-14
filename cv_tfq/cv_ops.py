@@ -1,6 +1,8 @@
 """Contains code for all basic CV operators."""
 import cirq
-import numpy as np
+import numpy as np  # type: ignore[import]
+from typing import List, Any
+
 
 class BinaryOp(object):
     """
@@ -15,7 +17,7 @@ class BinaryOp(object):
         - op (cirq.PauliSum): the PauliSum representation of the BinaryOp
     """
 
-    def __init__(self, qubits):
+    def __init__(self, qubits: List[cirq.Qid]) -> None:
         """
         Initialize the member variables.
 
@@ -26,8 +28,8 @@ class BinaryOp(object):
             - None
 
         Raises:
-            - TypeError: if the qubits are not all instance of the cirq.Qid class, 
-                the op is invalid. This class contains all types of qubits and 
+            - TypeError: if the qubits are not all instance of the cirq.Qid class,
+                the op is invalid. This class contains all types of qubits and
                 higher order qudits
         """
         for q in qubits:
@@ -37,16 +39,22 @@ class BinaryOp(object):
         self.precision = len(self.qubits)
         op = cirq.PauliSum()
         for n, q in enumerate(self.qubits):
-            J = cirq.PauliString(-2**(self.precision - n - 1)/2 * cirq.Z(q))
-            I = cirq.PauliString(2**(self.precision - n - 1)/2 * cirq.I(q))
+            J: cirq.PauliString = cirq.PauliString(
+                -(2 ** (self.precision - n - 1)) / 2 * cirq.Z(q)
+            )
+            I: cirq.PauliString = cirq.PauliString(
+                2 ** (self.precision - n - 1) / 2 * cirq.I(q)
+            )
             op += J
             op += I
         self.op = op
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """Convert to string."""
         return str(self.op)
 
-    def __eq__(self, o):
+    def __eq__(self, o: Any) -> bool:
+        """Test equality."""
         return (self.__class__ == o.__class__) and (self.op == o.op)
 
 
@@ -63,7 +71,7 @@ class PositionOp(object):
         - op (cirq.PauliSum): the PauliSum representation of the BinaryOp
     """
 
-    def __init__(self, qubits):
+    def __init__(self, qubits: List[cirq.Qid]) -> None:
         """
         Initialize the member variables.
 
@@ -74,8 +82,8 @@ class PositionOp(object):
             - None
 
         Raises:
-            - TypeError: if the qubits are not all instance of the cirq.Qid class, 
-                the op is invalid. This class contains all types of qubits and 
+            - TypeError: if the qubits are not all instance of the cirq.Qid class,
+                the op is invalid. This class contains all types of qubits and
                 higher order qudits
         """
         for q in qubits:
@@ -85,19 +93,22 @@ class PositionOp(object):
         self.precision = len(self.qubits)
         op = cirq.PauliSum()
         for n, q in enumerate(self.qubits):
-            op += cirq.PauliString(-2 ** (self.precision - n - 1), cirq.Z(q))
+            op += cirq.PauliString(-(2 ** (self.precision - n - 1)), cirq.Z(q))
         op -= cirq.PauliString(cirq.I(qubits[-1]))
-        op *= np.sqrt(2 * np.pi / (2 ** self.precision)) / 2
+        op *= np.sqrt(2 * np.pi / (2**self.precision)) / 2
 
         self.op = op
-        
-    def __str__(self):
+
+    def __str__(self) -> str:
+        """Convert to string."""
         return str(self.op)
 
-    def __eq__(self, o):
+    def __eq__(self, o: Any) -> bool:
+        """Test equality."""
         return (self.__class__ == o.__class__) and (self.op == o.op)
 
-    def __add__(self, o):
+    def __add__(self, o: Any) -> Any:
+        """Add ops."""
         if isinstance(o, self.__class__):
             new_cv = self.__class__(sorted(set(self.qubits + o.qubits)))
             new_cv.op = self.op + o.op
@@ -108,25 +119,28 @@ class PositionOp(object):
             for q in new_cv.qubits:
                 new_cv.op += cirq.PauliString(o, cirq.I(q))
             return new_cv
-        else:
-            raise TypeError(
-                "Adding is only defined between instances of the same CV class \
-            or between a CV class instance and a number"
-            )
-    
-    def __radd__(self, o):
+        raise TypeError(
+            "Adding is only defined between instances of the same CV class \
+        or between a CV class instance and a number"
+        )
+
+    def __radd__(self, o: Any) -> Any:
+        """Add ops."""
         return self.__add__(o)
-    
-    def __sub__(self, o):
-        return self.__add__(-1*o)
-    
-    def __rsub__(self, o):
+
+    def __sub__(self, o: Any) -> Any:
+        """Subtract ops."""
+        return self.__add__(-1 * o)
+
+    def __rsub__(self, o: Any) -> Any:
+        """Subtract ops."""
         if isinstance(o, int) or isinstance(o, float):
             new_cv = self.__class__(self.qubits)
-            new_cv.op = -1*self.op
+            new_cv.op = -1 * self.op
             return new_cv.__add__(o)
 
-    def __mul__(self, o):
+    def __mul__(self, o: Any) -> Any:
+        """Multiply ops."""
         if isinstance(o, self.__class__):
             new_cv = self.__class__(sorted(set(self.qubits + o.qubits)))
             new_cv.op = self.op * o.op
@@ -141,25 +155,25 @@ class PositionOp(object):
              or between a CV class instance and a number"
             )
 
-    def __rmul__(self, o):
+    def __rmul__(self, o: Any) -> Any:
+        """Multiply ops."""
         if isinstance(o, int) or isinstance(o, float):
             return self.__mul__(o)
 
-    def __truediv__(self, o):
+    def __truediv__(self, o: Any) -> Any:
+        """Divide ops."""
         if not (isinstance(o, int) or isinstance(o, float)):
-            raise TypeError(
-                "Division is only defined between a CV class and a number"
-            )
+            raise TypeError("Division is only defined between a CV class and a number")
         if o == 0:
-            return ValueError(
-                "Division by 0 Error"
-            )
+            return ValueError("Division by 0 Error")
         return self.__mul__(1.0 / o)
 
-    def __pow__(self, power):
+    def __pow__(self, power: Any) -> Any:
+        """Exponentiate ops."""
         new_cv = self.__class__(self.qubits)
         new_cv.op **= power
         return new_cv
+
 
 class MomentumOp(PositionOp):
     """
@@ -167,7 +181,7 @@ class MomentumOp(PositionOp):
 
     Convention from https://arxiv.org/abs/1503.06319
     Note that our operators are mapped to qubits in big-endian format (MSB at left-most position)
-    
+
     Internally, this operator is the same as the position operator;
     it is a different class so that it will be padded with the proper
     centered Fourier transforms whenever it is exponentiated
@@ -176,7 +190,7 @@ class MomentumOp(PositionOp):
         - qubits (list): qubits that the discretized CV is stored on [qubit0,qubit1,qubit2,...,qubitn]
     """
 
-    def __init__(self, qubits):
+    def __init__(self, qubits: List[cirq.Qid]) -> None:
         """
         Initialize the member variables.
 

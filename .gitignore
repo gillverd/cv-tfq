@@ -1,0 +1,13 @@
+cv_tfq/__pycache__/__init__.cpython-38.pyc
+cv_tfq/__pycache__/cv_ops.cpython-38.pyc
+cv_tfq/__pycache__/cv_subroutines.cpython-38.pyc
+cv_tfq/__pycache__/cv_utils.cpython-38.pyc
+cv_tfq.egg-info/dependency_links.txt
+cv_tfq.egg-info/PKG-INFO
+cv_tfq.egg-info/requires.txt
+cv_tfq.egg-info/SOURCES.txt
+cv_tfq.egg-info/top_level.txt
+tests/__pycache__/cv_ops_test.cpython-38-pytest-7.1.2.pyc
+tests/__pycache__/cv_ops_test.cpython-39-pytest-7.0.0.pyc
+tests/__pycache__/cv_subroutines_test.cpython-38-pytest-7.1.2.pyc
+tests/__pycache__/cv_subroutines_test.cpython-39-pytest-7.0.0.pyc
